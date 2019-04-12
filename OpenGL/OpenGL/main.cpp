@@ -33,6 +33,81 @@ const GLchar* fragmentShaderSource = "#version 330 core\n"
 "color = texture(ourTexture, TexCoord);\n"
 "}\n\0";
 
+GLuint createFBO()
+{
+    GLuint imageFBO = 0;
+    glGenFramebuffers(1, &imageFBO);
+    return imageFBO;
+}
+
+bool releaseFBO( GLuint fboID)
+{
+    if (0 == fboID)
+    {
+        return false;
+    }
+    glDeleteFramebuffers(1, &fboID);
+    return true;
+}
+
+GLuint createTexture()
+{
+    GLuint textureID = 0;
+    return textureID;
+}
+
+void releaseTexture(GLuint textureID)
+{
+    if (0 != textureID)
+    {
+        glDeleteTextures(1, &textureID);
+    }
+}
+
+bool bindTextureToFBO(GLuint fboID, GLuint textureID)
+{
+    return true;
+}
+
+void offScreenRender()
+{
+
+}
+
+void screenRender()
+{
+
+}
+
+bool copyTextureToMemery(GLuint fboID, GLuint textureID, GLuint target,int width, int heigth)
+{
+    //
+    // read out piexl
+    //
+    GLint oldFBO;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, fboID);
+    unsigned char* dstData = new unsigned char[width * heigth * 4];
+    memset(dstData, 0, width * heigth * 4);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, textureID, 0);
+    glReadPixels(0, 0, 800, 600, GL_RGBA, GL_UNSIGNED_BYTE, dstData);
+    GLenum err = glGetError();
+    if (err != GL_NO_ERROR)
+    {
+        return false;
+    }
+    int save_result = SOIL_save_image
+        (
+        "opengltest1.png",
+        SOIL_SAVE_TYPE_BMP,
+        800, 600, 4,
+        dstData
+        );
+    SOIL_free_image_data(dstData);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return true;
+}
+
 int main()
 {
 	// Init GLFW
@@ -159,27 +234,26 @@ int main()
 	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
 
-    //
-    //FBO 
-    GLuint imageFBO;
+    
     GLuint offscreenTexture;
-    //
-    glGenFramebuffersEXT(1, &imageFBO);
-    //bind FBO
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, imageFBO);
-
     // create testure
     glGenTextures(1, &offscreenTexture);
-    // bind Texture
     glBindTexture(GL_TEXTURE_2D, offscreenTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenTexture, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    
+    //
+    //FBO 
+    GLuint imageFBO;
+    glGenFramebuffers(1, &imageFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, imageFBO);
+    //attach texture
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenTexture, 0); 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// Game loop
 	while (!glfwWindowShouldClose(window))
@@ -190,8 +264,8 @@ int main()
 		// Render
         //
         //bind FBO 
-        glBindFramebuffer(GL_FRAMEBUFFER, imageFBO);
-        glBindTexture(GL_TEXTURE_2D, offscreenTexture);
+        //glBindFramebuffer(GL_FRAMEBUFFER, imageFBO);
+        //glBindTexture(GL_TEXTURE_2D, offscreenTexture);
 
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -199,30 +273,13 @@ int main()
 
 		// Draw our first triangle
 		// Bind Texture
-		glBindTexture(GL_TEXTURE_2D, texture);
+		
 		glUseProgram(shaderProgram);
+        glBindTexture(GL_TEXTURE_2D, texture);
 		glBindVertexArray(VAO);//如果说VAO是VBO的集合，绘制时，绑定VAO就可以绘制，那么EBO是何时绑定的？
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);//EBO在这个时候实现绑定
         //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
-
-        //
-        // read out piexl
-        //
-        /*unsigned char* dstData = new unsigned char[800 * 600 * 4];
-        memset(dstData, 0, 800 * 600 * 4);
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(0, 0, 800, 600, GL_RGBA, GL_UNSIGNED_BYTE, dstData);
-        
-        int save_result = SOIL_save_image
-            (
-            "opengltest1.png",
-            SOIL_SAVE_TYPE_BMP,
-            800, 600, 4,
-            dstData
-            );
-        SOIL_free_image_data(dstData);*/
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
