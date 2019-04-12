@@ -127,6 +127,7 @@ int main()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
+    //glVertexAttribPointer explain how to use those data
 	// Position attribute
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
@@ -158,6 +159,28 @@ int main()
 	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture when done, so we won't accidentily mess up our texture.
 
+    //
+    //FBO 
+    GLuint imageFBO;
+    GLuint offscreenTexture;
+    //
+    glGenFramebuffersEXT(1, &imageFBO);
+    //bind FBO
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, imageFBO);
+
+    // create testure
+    glGenTextures(1, &offscreenTexture);
+    // bind Texture
+    glBindTexture(GL_TEXTURE_2D, offscreenTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenTexture, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
 	// Game loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -165,6 +188,11 @@ int main()
 		glfwPollEvents();
 
 		// Render
+        //
+        //bind FBO 
+        glBindFramebuffer(GL_FRAMEBUFFER, imageFBO);
+        glBindTexture(GL_TEXTURE_2D, offscreenTexture);
+
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
@@ -173,16 +201,38 @@ int main()
 		// Bind Texture
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO);
+		glBindVertexArray(VAO);//如果说VAO是VBO的集合，绘制时，绑定VAO就可以绘制，那么EBO是何时绑定的？
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
+
+        //
+        // read out piexl
+        //
+        /*unsigned char* dstData = new unsigned char[800 * 600 * 4];
+        memset(dstData, 0, 800 * 600 * 4);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glReadPixels(0, 0, 800, 600, GL_RGBA, GL_UNSIGNED_BYTE, dstData);
+        
+        int save_result = SOIL_save_image
+            (
+            "opengltest1.png",
+            SOIL_SAVE_TYPE_BMP,
+            800, 600, 4,
+            dstData
+            );
+        SOIL_free_image_data(dstData);*/
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
 	}
 	// Properly de-allocate all resources once they've outlived their purpose
+    glDeleteTextures(1, &texture);
+    glDeleteTextures(1, &offscreenTexture);
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &imageFBO);
 	// Terminate GLFW, clearing any resources allocated by GLFW.
 	glfwTerminate();
 	return 0;
