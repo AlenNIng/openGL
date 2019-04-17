@@ -51,7 +51,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\3rd\GLEW\include;..\..\3rd\GLFW\include;..\..\3rd\SOIL\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\3rd\GLEW\include;..\..\3rd\GLFW\include;..\..\3rd\SOIL\include;..\..\3rd\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -66,7 +66,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\3rd\GLEW\include;..\..\3rd\GLFW\include;..\..\3rd\SOIL\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\3rd\GLEW\include;..\..\3rd\GLFW\include;..\..\3rd\SOIL\include;..\..\3rd\glm</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

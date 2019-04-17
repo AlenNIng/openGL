@@ -3,6 +3,12 @@
 #include "GL/glew.h"
 #include "glfw3.h"
 #include "SOIL.h"
+
+
+// GLM Mathematics
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtc/type_ptr.hpp>
 #define SHADER_SOURCE(...) #__VA_ARGS__
 
 const GLuint WIDTH = 800, HEIGHT = 600;
@@ -11,14 +17,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 const GLchar* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 position;\n"
-"layout (location = 1) in vec3 color;\n"
 "layout (location = 2) in vec2 texCoord;\n"
-"out vec3 ourColor;\n"
+"uniform mat4 model;\n"
+"uniform mat4 view;\n"
+"uniform mat4 projection;\n"
 "out vec2 TexCoord;\n"
 "void main()\n"
 "{\n"
-"gl_Position = vec4(position.x, position.y, position.z, 1.0);\n"
-"ourColor = color;\n"
+"gl_Position = projection * view * model *vec4(position.x, position.y, position.z, 1.0);\n"
+"//ourColor = color;\n"
 "TexCoord = vec2(texCoord.x, 1.0 - texCoord.y);\n"
 "}\0";
 
@@ -137,6 +144,9 @@ int main()
 	// Define the viewport dimensions
 	glViewport(0, 0, WIDTH, HEIGHT);
 
+    // Setup OpenGL options
+    glEnable(GL_DEPTH_TEST);
+
 	// Build and compile our shader program
 	// Vertex shader
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -178,39 +188,84 @@ int main()
 
 
 	// Set up vertex data (and buffer(s)) and attribute pointers
-	GLfloat vertices[] = {
-		//     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
-		1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // 右上
-		1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // 右下
-		-1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,   // 左下
-		-1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f    // 左上
-	};
-	GLuint indices[] = {  // Note that we start from 0!
-		0, 1, 3, // First Triangle
-		1, 2, 3  // Second Triangle
-	};
-	GLuint VBO, VAO, EBO;
+	//GLfloat vertices[] = {
+	//	//     ---- 位置 ----       ---- 颜色 ----     - 纹理坐标 -
+	//	0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // 右上
+	//	0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,   // 右下
+	//	-0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,   // 左下
+	//	-0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f    // 左上
+	//};
+
+    GLfloat vertices[] = {
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,//1
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f,//2
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,//3
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,//3
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,//4
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,//1    //背面
+
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,//5
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,//6
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,//7
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,//7
+        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,//8
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,//5     //正面
+
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,//8
+        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,//4
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,//1
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,//1
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,//5
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,//8     //左面
+
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,//7
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,//3
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,//2
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,//2
+        0.5f, -0.5f, 0.5f, 0.0f, 0.0f,//6
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,//7     //右面
+
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,//1
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,//2
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,//6
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,//6
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,//5
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,//1    //底面
+
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,//4
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,//3
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,//7
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,//7
+        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,//8
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f//4      //上面
+    };
+
+	//GLuint indices[] = {  // Note that we start from 0!
+	//	0, 1, 3, // First Triangle
+	//	1, 2, 3  // Second Triangle
+	//};
+    GLuint VBO, VAO;//, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	//glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     //glVertexAttribPointer explain how to use those data
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
 	// Color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(1);
+	/*glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);*/
 	// TexCoord attribute
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(2);
 
 	glBindVertexArray(0); // Unbind VAO
@@ -255,6 +310,20 @@ int main()
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, offscreenTexture, 0); 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    glm::vec3 cubePositions[] = {
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(2.0f, 5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3(2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f, 3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f),
+        glm::vec3(1.5f, 2.0f, -2.5f),
+        glm::vec3(1.5f, 0.2f, -1.5f),
+        glm::vec3(-1.3f, 1.0f, -1.5f)
+    };
+
+
 	// Game loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -269,16 +338,52 @@ int main()
 
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		//glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Draw our first triangle
 		// Bind Texture
 		
 		glUseProgram(shaderProgram);
+        //激活纹理单元，绑定纹理，设置采样器对应的纹理单元， 激活单元跟设置单元要对应，不然采样出错
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(glGetUniformLocation(shaderProgram, "ourTexture"), 0);
+        
+        // Create transformations
+        //glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 projection;
+        //model = glm::rotate(model, (GLfloat)glfwGetTime() * 45.0f, glm::vec3(0.5f, 1.0f, 0.0f));
+        //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f));
+        GLfloat radius = 10.0f;
+        GLfloat camX = sin(glfwGetTime()) * radius;
+        GLfloat camZ = cos(glfwGetTime()) * radius;
+        view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        projection = glm::perspective(45.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
+        int size = sizeof(glm::mat4) / sizeof(float);
+   
+        GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
+        GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+        GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
+        // Pass them to the shaders
+        //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        // Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+        //glUniformMatrix4fv(projLoc, 1, GL_FALSE, projection);
+
 		glBindVertexArray(VAO);//如果说VAO是VBO的集合，绘制时，绑定VAO就可以绘制，那么EBO是何时绑定的？
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);//EBO在这个时候实现绑定
-        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);//EBO在这个时候实现绑定
+        for (GLuint i = 0; i < 10; i++)
+        {
+            glm::mat4 model;
+            model = glm::translate(model, cubePositions[i]);
+            GLfloat angle = 20.0f * (i +1);
+            model = glm::rotate(model, (GLfloat)glfwGetTime() *angle, glm::vec3(1.0f, 0.3f, 0.5f));
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 		glBindVertexArray(0);
 
 		// Swap the screen buffers
