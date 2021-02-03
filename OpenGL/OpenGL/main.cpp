@@ -11,6 +11,9 @@
 #include <gtc/type_ptr.hpp>
 #define SHADER_SOURCE(...) #__VA_ARGS__
 
+// for  _vsprintf error in higher version vs
+#pragma comment(lib, "legacy_stdio_definitions.lib")
+
 const GLuint WIDTH = 800, HEIGHT = 600;
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -121,7 +124,7 @@ bool copyTextureToMemery(GLuint fboID, GLuint textureID, GLuint target,int width
 }
 
 #define VAOUSE 1
-int main()
+int main1()
 {
     glfwInit();
     // Set all the required options for GLFW
@@ -151,13 +154,6 @@ int main()
     unsigned char* image = SOIL_load_image("container.jpg", &w, &h, 0, SOIL_LOAD_RGBA);
     unsigned char * imageCopyData = new unsigned char[w * h * 4];
     memcpy(imageCopyData, image, w*h * 4);
-    int save_result = SOIL_save_image
-        (
-        "opengltest1.png",
-        SOIL_SAVE_TYPE_BMP,
-        w, h, 4,
-        imageCopyData
-        );
 
 
     GLuint _quadVbo;
@@ -425,7 +421,7 @@ gl_FragColor = texture2D(uTexture, vUV);
 
 }
 
-int main1()
+int main()
 {
 	// Init GLFW
 	glfwInit();
@@ -667,8 +663,8 @@ int main1()
         //model = glm::rotate(model, (GLfloat)glfwGetTime() * 45.0f, glm::vec3(0.5f, 1.0f, 0.0f));
         //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -2.0f));
         GLfloat radius = 3.0f;
-        GLfloat camX = (float)sin(glfwGetTime()) * radius;
-        GLfloat camZ = (float)cos(glfwGetTime()) * radius;
+        GLfloat camX = 0.0;// (float)sin(glfwGetTime())* radius;
+        GLfloat camZ = radius;//(float)cos(glfwGetTime()) * radius;
         view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
         projection = glm::perspective(45.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
         int size = sizeof(glm::mat4) / sizeof(float);
@@ -685,6 +681,8 @@ int main1()
 
 		glBindVertexArray(VAO);//如果说VAO是VBO的集合，绘制时，绑定VAO就可以绘制，那么EBO是何时绑定的？
 		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);//EBO在这个时候实现绑定
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(2);
         for (GLuint i = 0; i < 10; i++)
         {
             glm::mat4 model;
@@ -694,6 +692,8 @@ int main1()
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(2);
 		glBindVertexArray(0);
 
 		// Swap the screen buffers
